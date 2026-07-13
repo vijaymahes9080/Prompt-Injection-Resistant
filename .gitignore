@@ -1,0 +1,21 @@
+# Python
+backend/venv/
+backend/.pytest_cache/
+__pycache__/
+*.pyc
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+# IDEs
+.idea/
+.vscode/
+.vs/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
