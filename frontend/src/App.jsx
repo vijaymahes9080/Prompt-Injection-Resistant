@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, LayoutDashboard, Terminal, Settings2, Flame, LogOut, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Shield, LayoutDashboard, Terminal, Settings2, Flame, LogOut, CheckCircle2, ShieldAlert, Zap } from 'lucide-react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Console from './components/Console';
 import PolicyEditor from './components/PolicyEditor';
 import AttackLab from './components/AttackLab';
+import RedVsBlue from './components/RedVsBlue';
 
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem('gateway_token'));
@@ -37,6 +38,7 @@ function App() {
     { id: 'console', label: 'Security Console', icon: Terminal },
     { id: 'policies', label: 'Firewall Policies', icon: Settings2 },
     { id: 'attack', label: 'Attack Lab', icon: Flame },
+    { id: 'redblue', label: 'Red vs Blue Lab', icon: Zap },
   ];
 
   return (
@@ -103,6 +105,7 @@ function App() {
         {activeTab === 'console' && <Console />}
         {activeTab === 'policies' && <PolicyEditor />}
         {activeTab === 'attack' && <AttackLab />}
+        {activeTab === 'redblue' && <RedVsBlue />}
       </main>
     </div>
   );

@@ -8,7 +8,7 @@ from datetime import datetime
 from app.database import engine, get_db, Base
 from app.config import settings
 from app.models import User, SecurityPolicy, ToolDefinition, AuditLog, ThreatEvent, SavedMemory
-from app.routers import auth, scan, tools, audit, chat
+from app.routers import auth, scan, tools, audit, chat, red_team
 from app.routers.auth import get_password_hash
 from app.security.firewall import scan_input, scan_output, rewrite_prompt
 from app.security.isolation import ContextManager
@@ -39,6 +39,7 @@ app.include_router(scan.router)
 app.include_router(tools.router)
 app.include_router(audit.router)
 app.include_router(chat.router)
+app.include_router(red_team.router)
 
 # Seed database on startup
 @app.on_event("startup")
