@@ -85,3 +85,19 @@ Upon startup, the database is seeded automatically with the following profiles:
 * `/backend/tests/` - Pytest verification test suite.
 * `/frontend/src/` - React dashboard panels and real-time trace socket monitors.
 * `/docs/` - System threat models and API layouts.
+
+---
+
+## Technical Security Visual Previews
+
+Here are visual representations of the security innovation modules active in this gateway:
+
+### 1. Gateway Security Hub (Dashboard Home)
+![Gateway Security Hub](frontend/src/assets/hero.png)
+
+### 2. Autonomous Red vs. Blue Lab
+![Red vs Blue Lab](frontend/src/assets/red_vs_blue_lab.png)
+
+### 3. Multimodal Steganography Scanner
+![Stego Scanner](frontend/src/assets/steganography_scanner.png)
+
