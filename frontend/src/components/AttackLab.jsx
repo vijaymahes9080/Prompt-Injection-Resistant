@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Play, Terminal, Flame, CheckCircle, ShieldCheck, AlertCircle, HelpCircle } from 'lucide-react';
+import { analyzePromptLocally } from '../demoData';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const ATTACK_DATASET = [
   {
@@ -45,9 +48,17 @@ export default function AttackLab() {
     setLoading(true);
     setResult(null);
 
+    // Demo mode — analyze locally without backend
+    if (!API_BASE) {
+      await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
+      setResult(analyzePromptLocally(payloadText));
+      setLoading(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('gateway_token');
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,18 +72,13 @@ export default function AttackLab() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setResult(data);
+        setResult(await response.json());
       } else {
         throw new Error('Attack execution failed. Server error.');
       }
     } catch (e) {
-      setResult({
-        error: e.message,
-        action: 'ERROR',
-        risk_score: 100,
-        response: 'Failed to complete transaction audit.'
-      });
+      // Fallback to local analysis on network error
+      setResult(analyzePromptLocally(payloadText));
     } finally {
       setLoading(false);
     }

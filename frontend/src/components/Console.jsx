@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Terminal, Send, ShieldAlert, ShieldCheck, Play, ArrowRight, CheckCircle2, User, AlertCircle, Database, HelpCircle } from 'lucide-react';
+import { analyzePromptLocally } from '../demoData';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
+const WS_BASE = import.meta.env.VITE_WS_URL || '';
 
 export default function Console() {
   const [session_id, setSessionId] = useState(() => 'sess_' + Math.random().toString(36).substring(2, 10));
@@ -22,6 +26,59 @@ export default function Console() {
     }
   }, [traceSteps]);
 
+  // ── Demo pipeline simulation (no WebSocket backend) ──
+  const runDemoPipeline = async (promptText) => {
+    const addStep = (step) => setTraceSteps(prev => [...prev, step]);
+    const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+    addStep({ step: 'GATEWAY_RECEIVED', status: 'INFO', data: { message: `Prompt received. Session: ${session_id}` } });
+    await delay(400);
+    addStep({ step: 'FIREWALL_SCAN', status: 'INFO', data: { message: 'Running injection pattern analysis…' } });
+    await delay(600);
+
+    const analysis = analyzePromptLocally(promptText);
+
+    if (analysis.threat_events.length > 0) {
+      analysis.threat_events.forEach(t => {
+        addStep({ step: 'THREAT_DETECTED', status: 'WARNING', data: { threat_type: t.threat_type, risk_score: t.risk_score, matched_pattern: t.matched_pattern } });
+      });
+      await delay(400);
+    } else {
+      addStep({ step: 'SCAN_CLEAN', status: 'SUCCESS', data: { message: 'No injection patterns detected.' } });
+      await delay(300);
+    }
+
+    addStep({ step: 'RISK_SCORED', status: 'INFO', data: { risk_score: analysis.risk_score, action: analysis.firewall_action } });
+    await delay(500);
+
+    if (analysis.firewall_action === 'REJECT') {
+      addStep({ step: 'PIPELINE_TERMINATED', status: 'ERROR', data: { reason: analysis.response_payload } });
+      setChatHistory(prev => [...prev,
+        { role: 'user', content: promptText },
+        { role: 'assistant', content: analysis.response_payload, blocked: true }
+      ]);
+    } else if (analysis.firewall_action === 'REWRITE') {
+      addStep({ step: 'PROMPT_REWRITTEN', status: 'WARNING', data: { sanitized: analysis.sanitized_payload } });
+      await delay(400);
+      addStep({ step: 'PIPELINE_SUCCESS', status: 'SUCCESS', data: { response: analysis.response_payload } });
+      setChatHistory(prev => [...prev,
+        { role: 'user', content: promptText },
+        { role: 'assistant', content: analysis.response_payload }
+      ]);
+    } else {
+      addStep({ step: 'LLM_PROCESSING', status: 'INFO', data: { message: 'Forwarding to LLM (demo mode)…' } });
+      await delay(700);
+      addStep({ step: 'PIPELINE_SUCCESS', status: 'SUCCESS', data: { response: analysis.response_payload } });
+      setChatHistory(prev => [...prev,
+        { role: 'user', content: promptText },
+        { role: 'assistant', content: analysis.response_payload }
+      ]);
+    }
+
+    setPrompt('');
+    setIsProcessing(false);
+  };
+
   const startPipeline = (e) => {
     if (e) e.preventDefault();
     if (!prompt.trim() || isProcessing) return;
@@ -30,33 +87,28 @@ export default function Console() {
     setTraceSteps([]);
     setPendingApproval(null);
 
-    // Create websocket channel
-    const socket = new WebSocket(`ws://localhost:8000/ws/trace/${session_id}`);
+    // Demo mode — no WebSocket backend
+    if (!WS_BASE) {
+      runDemoPipeline(prompt);
+      return;
+    }
+
+    // Real WebSocket backend
+    const socket = new WebSocket(`${WS_BASE}/ws/trace/${session_id}`);
     setActiveSocket(socket);
 
     socket.onopen = () => {
-      // Send chat initialization payload
-      socket.send(JSON.stringify({
-        prompt: prompt,
-        model: model,
-        system_prompt: systemPrompt
-      }));
+      socket.send(JSON.stringify({ prompt, model, system_prompt: systemPrompt }));
     };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      
-      // Append trace log
       setTraceSteps(prev => [...prev, data]);
 
-      if (data.step === "TOOL_APPROVAL_PENDING") {
-        setPendingApproval(data.data);
-      }
+      if (data.step === 'TOOL_APPROVAL_PENDING') setPendingApproval(data.data);
 
-      if (data.step === "PIPELINE_SUCCESS") {
-        // Chat complete, update chat history
-        setChatHistory(prev => [
-          ...prev, 
+      if (data.step === 'PIPELINE_SUCCESS') {
+        setChatHistory(prev => [...prev,
           { role: 'user', content: prompt },
           { role: 'assistant', content: data.data.response }
         ]);
@@ -65,9 +117,8 @@ export default function Console() {
         setIsProcessing(false);
       }
 
-      if (data.step === "PIPELINE_TERMINATED") {
-        setChatHistory(prev => [
-          ...prev,
+      if (data.step === 'PIPELINE_TERMINATED') {
+        setChatHistory(prev => [...prev,
           { role: 'user', content: prompt },
           { role: 'assistant', content: data.data.reason, blocked: true }
         ]);
@@ -76,21 +127,15 @@ export default function Console() {
       }
     };
 
-    socket.onerror = (err) => {
-      console.error("WS connection error:", err);
-      setTraceSteps(prev => [...prev, {
-        step: "CONNECTION_FAILED",
-        status: "ERROR",
-        data: { error: "WebSocket connection interrupted." }
-      }]);
+    socket.onerror = () => {
+      setTraceSteps(prev => [...prev, { step: 'CONNECTION_FAILED', status: 'ERROR', data: { error: 'WebSocket connection interrupted.' } }]);
       setIsProcessing(false);
     };
 
-    socket.onclose = () => {
-      setIsProcessing(false);
-      setActiveSocket(null);
-    };
+    socket.onclose = () => { setIsProcessing(false); setActiveSocket(null); };
   };
+
+
 
   const handleApproval = (approved) => {
     if (!activeSocket || !pendingApproval) return;

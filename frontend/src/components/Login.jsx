@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Shield, Lock, User, Terminal } from 'lucide-react';
+import { DEMO_USERS } from '../demoData';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState('admin');
@@ -12,18 +15,26 @@ export default function Login({ onLogin }) {
     setError('');
     setLoading(true);
 
+    // ── Demo mode: bypass API when no backend is configured ──
+    const demoUser = DEMO_USERS[username];
+    if (!API_BASE && demoUser && demoUser.password === password) {
+      await new Promise(r => setTimeout(r, 600)); // simulate latency
+      localStorage.setItem('gateway_token', demoUser.access_token);
+      localStorage.setItem('gateway_role', demoUser.role);
+      localStorage.setItem('gateway_user', demoUser.username);
+      setLoading(false);
+      onLogin(demoUser);
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
-      if (!response.ok) {
-        throw new Error('Authentication failed. Check your credentials.');
-      }
+      if (!response.ok) throw new Error('Authentication failed. Check your credentials.');
 
       const data = await response.json();
       localStorage.setItem('gateway_token', data.access_token);

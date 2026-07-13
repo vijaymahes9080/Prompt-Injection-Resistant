@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, ShieldAlert, BarChart3, Clock, DollarSign, Database, AlertTriangle, Cpu } from 'lucide-react';
+import { MOCK_METRICS, MOCK_LOGS } from '../demoData';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
@@ -8,21 +11,30 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const fetchMetricsAndLogs = async () => {
+    // Demo mode — no backend configured
+    if (!API_BASE) {
+      setMetrics(MOCK_METRICS);
+      setLogs(MOCK_LOGS);
+      setLoading(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('gateway_token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      
-      const metricsRes = await fetch('http://localhost:8000/api/audit/metrics', { headers });
-      const logsRes = await fetch('http://localhost:8000/api/audit/logs?limit=15', { headers });
-      
+      const metricsRes = await fetch(`${API_BASE}/api/audit/metrics`, { headers });
+      const logsRes = await fetch(`${API_BASE}/api/audit/logs?limit=15`, { headers });
       if (metricsRes.ok && logsRes.ok) {
-        const metricsData = await metricsRes.ok ? await metricsRes.json() : null;
-        const logsData = await logsRes.ok ? await logsRes.json() : [];
-        setMetrics(metricsData);
-        setLogs(logsData);
+        setMetrics(await metricsRes.json());
+        setLogs(await logsRes.json());
+      } else {
+        setMetrics(MOCK_METRICS);
+        setLogs(MOCK_LOGS);
       }
     } catch (err) {
-      console.error("Failed to retrieve dashboard telemetry:", err);
+      console.error('Backend unavailable, using demo data:', err);
+      setMetrics(MOCK_METRICS);
+      setLogs(MOCK_LOGS);
     } finally {
       setLoading(false);
     }
@@ -30,7 +42,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchMetricsAndLogs();
-    const interval = setInterval(fetchMetricsAndLogs, 5000); // Autorefresh metrics every 5 seconds
+    const interval = setInterval(fetchMetricsAndLogs, 30000);
     return () => clearInterval(interval);
   }, []);
 
