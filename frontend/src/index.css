@@ -1,17 +1,24 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-terminal-bg: #0a0f1d;
+  --color-terminal-card: #131c31;
+  --color-terminal-border: #1f2e4d;
+  --color-terminal-accent: #06b6d4;
+  --color-terminal-warning: #f59e0b;
+  --color-terminal-error: #ef4444;
+  --color-terminal-success: #10b981;
+}
 
 @layer base {
   body {
     margin: 0;
-    background-color: #080b16; /* Slate dark background */
+    background-color: #080b16;
     color: #f1f5f9;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow-x: hidden;
   }
 
-  /* Custom terminal scrollbars */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -28,7 +35,7 @@
   }
 }
 
-/* Custom glowing effect utilities */
+/* Glow utilities */
 .glow-cyan {
   box-shadow: 0 0 15px rgba(6, 182, 212, 0.15);
 }
@@ -39,14 +46,9 @@
   box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
 }
 
-/* Pulsing scanning scanlines */
 @keyframes scanline {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100%);
-  }
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
 }
 
 .scanline::after {
@@ -54,8 +56,10 @@
   display: block;
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%),
+    linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
   z-index: 10;
   background-size: 100% 2px, 3px 100%;
   pointer-events: none;
 }
+
